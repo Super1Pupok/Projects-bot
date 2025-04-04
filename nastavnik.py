@@ -6,4 +6,4 @@ nreply_keyboard = ReplyKeyboardMarkup(keyboard=[
             text='Посмотреть список учеников'
         )
     ]
-])
+], resize_keyboard=True)

@@ -6,4 +6,4 @@ ureply_keyboard = ReplyKeyboardMarkup(keyboard=[
             text='Сдать работу'
         )
     ]
-])
+], resize_keyboard=True)

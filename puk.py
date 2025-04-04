@@ -24,45 +24,6 @@ class Signup(StatesGroup):
     project = State()
 
 
-# class Database:
-#     def __init__(self, db_file):
-#         self.connection = sqlite3.connect(db_file)
-#         self.cursor = self.connection.cursor()
-#
-#     def add_user(self, user_id):
-#         with self.connection:
-#             return self.cursor.execute("INSERT INTO 'Пользователи' ('user_id') VALUES (?)", (user_id,))
-#
-#     def user_exists(self, user_id):
-#         with self.connection:
-#             result = self.cursor.execute("SELECT * FROM  'Пользователи' WHERE 'user_id' = ?", (user_id,)).fetchall()
-#             return bool(len(result))
-#
-#     def set_name(self, user_id, name):
-#         with self.connection:
-#             return self.cursor.execute("UPDATE 'Пользователи' SET 'name' = ? WHERE 'user_id' = ?", (name, user_id,))
-#
-#     def set_second_name(self, user_id, second_name):
-#         with self.connection:
-#             return self.cursor.execute("UPDATE 'Пользователи' SET 'second_name' = ? WHERE 'user_id' = ?",
-#                                        (second_name, user_id,))
-#
-#     def set_role(self, user_id, role):
-#         with self.connection:
-#             return self.cursor.execute("UPDATE 'Пользователи' SET 'role' = ? WHERE 'user_id' = ?",
-#                                        (role, user_id,))
-#
-#     def set_fms_class(self, user_id, fms_class):
-#         with self.connection:
-#             return self.cursor.execute("UPDATE 'Пользователи' SET 'class' = ? WHERE 'user_id' = ?",
-#                                        (fms_class, user_id,))
-#
-#     def set_project(self, user_id, project):
-#         with self.connection:
-#             return self.cursor.execute("UPDATE 'Пользователи' SET 'project' = ? WHERE 'user_id' = ?",
-#                                        (project, user_id,))
-
-
 TOKEN = '7604395608:AAFgTgPy5GrkeWFI8aJYOZ1rBwZ9I8E27E4'
 
 logging.basicConfig(level=logging.INFO)
@@ -72,16 +33,26 @@ dp = Dispatcher()
 
 connection = sqlite3.connect('nnn.db')
 cursor = connection.cursor()
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS Пользователи (
+user_id INT PRIMARY KEY, 
+name TEXT, 
+second_name TEXT, 
+role TEXT, 
+fms_class TEXT, 
+project TEXT)""")
+connection.commit()
+
 
 def user_exists(user_id):
     with connection:
-        result = cursor.execute("SELECT * FROM  'Пользователи' WHERE 'user_id' = ?", (user_id,)).fetchall()
+        result = cursor.execute("SELECT * FROM  Пользователи WHERE user_id = ?", (user_id,)).fetchall()
         return bool(len(result))
 
 
 def check_role(user_id):
     with connection:
-        return cursor.execute("SELECT * FROM  'Пользователи' WHERE 'role' = ?", (user_id,)).fetchall()
+        return str(cursor.execute("SELECT role FROM  Пользователи WHERE user_id = ?", (user_id,)).fetchall())
 
 
 @dp.message(CommandStart())
@@ -92,14 +63,14 @@ async def start(message: types.Message):
 
 @dp.message(Command('register'))
 async def command_register_handler(message: Message, state: FSMContext) -> None:
-    await message.answer('Для начала введи своё полное имя')
-    await state.set_state(Signup.name)
-    # if not user_exists(message.from_user.id):
-    # else:
-    #     if check_role(message.from_user.id) == 'Ученик':
-    #         await bot.send_message(message.from_user.id, 'Вы уже зарегистрированы!', reply_markup=ureply_keyboard)
-    #     else:
-    #         await bot.send_message(message.from_user.id, 'Вы уже зарегистрированы!', reply_markup=nreply_keyboard)
+    if not user_exists(message.from_user.id):
+        await message.answer('Для начала введи своё полное имя')
+        await state.set_state(Signup.name)
+    else:
+        if check_role(message.from_user.id) == "[('Ученик',)]":
+            await bot.send_message(message.from_user.id, 'Вы уже зарегистрированы!', reply_markup=ureply_keyboard)
+        else:
+            await bot.send_message(message.from_user.id, 'Вы уже зарегистрированы!', reply_markup=nreply_keyboard)
 
 
 @dp.message(Signup.name)
@@ -157,15 +128,15 @@ async def process_project(message: Message, state: FSMContext) -> None:
 async def process_succes(user_id, current_state):
     with connection:
         cursor.execute(
-            "INSERT INTO 'Пользователи' ('user_id', 'name', 'second_name', 'role', 'class', 'project') VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO 'Пользователи' ('user_id', 'name', 'second_name', 'role', 'fms_class', 'project') VALUES (?, ?, ?, ?, ?, ?)",
             (user_id, current_state['name'], current_state['second_name'], current_state['role'],
              current_state['fms_class'], current_state['project']))
         connection.commit()
-        if check_role(user_id) == 'Ученик':
+        if check_role(user_id) == "[('Ученик',)]":
             reply_keyboard = ureply_keyboard
         else:
             reply_keyboard = nreply_keyboard
-        await bot.send_message(user_id, f'Регистрация прошла успешно! {current_state}', reply_markup=reply_keyboard)
+        await bot.send_message(user_id, f'Регистрация прошла успешно!', reply_markup=reply_keyboard)
 
 
 @dp.message()

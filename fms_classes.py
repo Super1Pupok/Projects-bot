@@ -37,4 +37,4 @@ classes_keyboard = ReplyKeyboardMarkup(keyboard=[
             text='Ψ(Пси)'
         )
     ]
-])
+], resize_keyboard=True)
